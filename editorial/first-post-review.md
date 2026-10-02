@@ -2,7 +2,7 @@
 
 Both posts are unpublished (`draft: true`). This branch is intended for review. The live site has not been changed.
 
-- [Main story](../src/content/posts/fixing-the-grader.md): roughly 2,800 words, following the question, pilot, setup, recovery, results, and interpretation.
+- [Main story](../src/content/posts/fixing-the-grader.md): “When passing tests becomes the reward,” following the research question, controlled intervention, failure mechanisms, reliable execution, and measured policy outcomes.
 - [GRPO companion](../src/content/posts/working-through-grpo.md): roughly 1,500 words, with a worked example, objective, zero-loss explanation, and primary references.
 
 ## Review before publishing
@@ -31,3 +31,9 @@ The supplied complete booking study record is the source for experimental claims
 Run `npm ci` and `npm run dev`, then open both `/writing/` routes above. Drafts are included only in the development server and excluded by `npm run build`.
 
 Equations use the Markdown math pipeline and bundled KaTeX styles. The existing portfolio design is preserved.
+
+## Revision: make the research and engineering contribution visible
+
+The main post now opens with the research question, implemented system, and measured contribution. It explains why the task permits an inspectable intervention, makes experimental controls explicit, traces both failure mechanisms to witnesses, and describes recovery through the invariants and fault-injection evidence it preserves. The full training comparison remains prominent, while scope limitations are consolidated instead of repeated throughout the narrative. Historical package settings sit at the end so they do not interrupt the research story.
+
+The intended audience is a technical researcher or research-engineering reviewer. The post does not claim novelty, frontier scale, improved trained-policy performance, or a guaranteed hiring outcome. Links to inspectable research code and evidence are the most important remaining publication addition.

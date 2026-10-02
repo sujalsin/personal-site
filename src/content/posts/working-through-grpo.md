@@ -179,7 +179,7 @@ The weak suite could give full reward to the wrong endpoint behavior. The repair
 
 That is the connection I want to keep in mind while reading the equations: the advantage is only as meaningful as the comparison the reward function creates. Whether a proposed change improves the model still needs an experiment.
 
-Return to [I fixed the grader. Did I fix the training?](/writing/fixing-the-grader/) for the complete study story, setup, and results.
+Return to [When passing tests becomes the reward](/writing/fixing-the-grader/) for the complete study story, setup, and results.
 
 ## Reading alongside this note
 

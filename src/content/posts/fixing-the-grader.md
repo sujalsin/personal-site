@@ -1,150 +1,102 @@
 ---
-title: "I fixed the grader. Did I fix the training?"
-description: "A small GRPO experiment about missing tests, a promising pilot, and what changed when I ran the full evaluation."
+title: "When passing tests becomes the reward"
+description: "Building a verifiable code-RL experiment: controlled reward interventions, failure analysis, and recovery that preserves the evidence."
 date: "2026-10-02"
 draft: true
 ---
 
-A booking ends at 10. Another starts at 10. How much capacity do they need?
+I wanted to understand what happens when the tests used to train a coding model leave out part of the specification.
 
-One. The first booking is already over when the next begins.
+A test suite can be useful without being complete. But once its score becomes a reinforcement-learning reward, every omission becomes part of the feedback the model learns from. A program can receive full reward while implementing the wrong behavior. Repairing that omission raises a second question: does a better grader produce a better trained policy?
 
-That tiny detail became the center of this experiment. I wanted to explore what happens when a language model learns from a grader that misses something the task explicitly requires. Could an incomplete test suite reward the wrong solution? Would reinforcement learning make that mistake more common? And if I repaired the tests, would the model learn better behavior?
+I built an execution-based GRPO training and evaluation pipeline to investigate both questions. The work involved designing a controlled verifier intervention, running twelve training jobs, tracing generated programs back to their execution evidence, and recovering interrupted work without silently changing the experiment.
 
-The first question had a clear answer. The others became much less clear after twelve training runs and 2,048 evaluation draws.
+Across 2,048 evaluation draws, an eight-test replacement rejected all **38 observed false acceptances** while retaining all **440 audit-passing draws**. Investigating those failures uncovered two endpoint mechanisms, including one the original target-bug detector missed. The four-seed training comparison did not establish a corresponding improvement in learned behavior.
 
-The repaired grader caught all 38 observed false acceptances. Training with it did not establish an improvement on the main outcomes. Understanding that gap became the most useful part of the project.
+That separation became the central result: I could demonstrate that the repair improved full-acceptance decisions on the evaluated programs, then test—and leave unresolved—the stronger claim about training. Along the way, I built the controls needed to tell a model failure from an execution failure and a promising sample from a reproducible effect.
 
-## A small task with a specific blind spot
+## Make the reward mismatch inspectable
 
-The model's job was to write one Python function:
+The task was to implement a booking-capacity function:
 
 ```python
 def required_capacity(bookings: list[list[int]]) -> int:
     ...
 ```
 
-It should return the maximum number of simultaneously active bookings. The input can be unsorted, duplicate bookings count separately, and an empty list needs zero capacity.
+It returns the maximum number of simultaneously active bookings. Bookings may be unsorted, duplicates consume separate capacity, and an empty input requires zero capacity.
 
-Each booking occupies a half-open interval: start included, end excluded. For example:
+The important rule is that intervals are half-open: a booking occupies capacity from its start up to, but excluding, its end. A booking ending at 10 and another beginning at 10 need one unit of capacity.
 
 ```python
 required_capacity([[1, 5], [2, 6], [7, 9]])  # 2
 required_capacity([[1, 5], [5, 9]])          # 1
 ```
 
-The prompt explicitly stated the endpoint rule. The ambiguity was in the feedback, not the instructions.
+This task made the intervention concrete. I could remove the cases that distinguish inclusive from half-open endpoints, author tests that restore that distinction, and inspect a failing program's behavior on exact witness inputs. The prompt continued to state the correct rule in every condition.
 
-I used three versions of the training verifier:
+I constructed three training verifiers:
 
-| Condition | Tests | What changed |
+| Condition | Scored tests | Intervention |
 | --- | ---: | --- |
-| Reference | 96 | The complete training suite |
-| Weak | 57 | Removed 39 shared-endpoint cases |
-| Repaired | 57 | Replaced eight ordinary weak-suite cases with eight endpoint cases |
+| Reference | 96 | Complete training suite |
+| Weak | 57 | Remove 39 shared-endpoint cases |
+| Repaired | 57 | Replace eight ordinary weak-suite cases with eight endpoint cases |
 
-The weak grader could award full marks to code that treats touching bookings as overlapping. The repair restored tests that could distinguish that mistake, without increasing the test count. Equal test counts do not mean equal difficulty or information, though; changing the cases changes the reward signal.
-
-For a program $p$ and a suite $S$, the reward was the fraction of tests passed:
+For a program $p$ and a suite $S$, the reward was its fraction of passing tests:
 
 $$
 R_S(p)=\frac{1}{|S|}\sum_{x\in S}\mathbf{1}[p(x)=f(x)].
 $$
 
-Here, $f(x)$ is the expected answer. Execution and extraction failures also needed explicit handling; an unavailable infrastructure result could not simply become a failed test.
+Here, $f(x)$ is the expected answer. The repair held the test count at 57 while changing which behaviors the reward distinguished. It matched the grading budget in test count; difficulty and information content necessarily changed with the cases.
 
-A separate, fixed 192-case development audit measured behavior outside the scalar training reward. I call it a *development audit* because it was an existing evaluation suite, not a newly held-out final benchmark. Passing every audit case is still finite-suite success, not proof that a program is correct on every possible input.
+A separate 192-case development audit supplied a common yardstick across conditions. Its cases never supplied the scalar training reward. Throughout this post, “audit-passing” means passing all 192 cases.
 
-## How GRPO enters the picture
+That gave me two comparisons to keep separate: apply different graders to the **same saved programs**, and train **different policies** with those graders before evaluating them against the common audit.
 
-I used Qwen2.5-Coder-1.5B-Instruct and trained it with GRPO: Group Relative Policy Optimization.
+## Turn a pilot into a controlled comparison
 
-The useful intuition is to sample several answers to the same prompt, score them, and compare their rewards within that group. Answers above the group average receive positive advantages; answers below it receive negative ones. Those advantages weight a policy-gradient update.
+An earlier one-seed pilot produced three target-bug programs in 32 final weak-condition draws, compared with one in 32 reference-condition draws. That observation motivated a replication with four new seeds and a fixed repair.
 
-In this experiment, each group contained four completions. The scores came from executing the generated programs against the selected training tests. There was no separately learned reward model deciding whether the code looked convincing.
+Within each seed, I ran reference, weak, and repaired training from the same Qwen2.5-Coder-1.5B-Instruct weights with fresh optimizers. The prompt and first rollout tokens matched across the three conditions. These matches were checked against saved identities and checkpoint receipts.
 
-That makes the verifier's blind spot consequential. A broken solution can be one of the group's best-scoring answers. The update gets feedback from the tests we actually supplied, not from the complete specification we intended them to represent.
+I froze the repair before seeing the replication outcomes and fixed the primary comparison at update 24. Each run used four completions per update, giving 288 optimizer updates and 1,152 training completions across twelve runs.
 
-I've written a separate note, [Working through GRPO](/writing/working-through-grpo/), for the derivation, a numerical example, and the connection to the DeepSeekMath paper. Here, the key question is what happens when we change the rewards that GRPO compares.
+Evaluation used one shared 128-draw baseline, 32 draws per policy at update 12, and 128 per policy at update 24:
 
-[TRL](https://huggingface.co/docs/trl/v0.28.0/grpo_trainer) supplied the training implementation. It handled generation, advantages, token losses, and optimizer integration; the project still had to supply the task, execution-based rewards, evaluation, and reliable recovery.
+| Cohort | Policies evaluated | Draws per policy | Total draws |
+| --- | ---: | ---: | ---: |
+| Original model | 1 | 128 | 128 |
+| Update 12 | 12 | 32 | 384 |
+| Update 24 | 12 | 128 | 1,536 |
+| **Total** | | | **2,048** |
 
-## The pilot gave me a reason to look closer
+Evaluation sampling seeds were shared across policies. Training effects were compared within seed, giving four paired replications. The thousands of generated answers and their individual test outcomes provide behavioral detail; they do not increase the number of independent training seeds.
 
-An earlier one-seed pilot produced three target-bug programs out of 32 final draws in the weak condition, compared with one out of 32 in the reference condition.
+The pilot remained separate, including its three unresolved input outcomes and corresponding missing-data bounds. The replication completed all planned evaluation batches with zero unresolved input outcomes.
 
-That was a possible signal worth investigating. It was also two additional observations in a small sample. The pilot retained three unresolved input outcomes, so some of its results had explicit missing-data bounds.
+## What the model learns from the verifier
 
-The follow-up used four new training seeds and three conditions per seed: twelve runs. Every run began from the same original model weights with a fresh optimizer. Within each seed's triplet, the prompt, starting weights, and first rollout tokens matched.
+I used GRPO—Group Relative Policy Optimization—with [TRL](https://huggingface.co/docs/trl/v0.28.0/grpo_trainer) providing the trainer. For each prompt, the model generated four completions. The execution system scored their extracted programs, and the trainer compared those rewards within the group.
 
-The repair was chosen and frozen before seeing these replication outcomes. The final comparison was fixed at update 24, rather than whichever checkpoint happened to look best.
+The group-relative advantage has the form:
 
-The workload was:
+$$
+A_i=\frac{R_i-\overline R}{\sigma_R+\delta}.
+$$
 
-| Measurement | Count |
-| --- | ---: |
-| Training runs | 12 |
-| Optimizer updates per run | 24 |
-| Total optimizer updates | 288 |
-| Training completions | 1,152 |
-| Shared baseline evaluation draws | 128 |
-| Update-12 evaluation draws | 384 |
-| Update-24 evaluation draws | 1,536 |
-| Total evaluation draws | 2,048 |
+The numerator measures how a completion scored relative to its companions; the denominator scales by group reward variation, with a numerical stabilizer $\delta$. Those advantages weight the policy update. The tests themselves do not need to be differentiable: the gradient flows through the model's token log probabilities.
 
-Those numbers describe different things. There were four independent training-seed replications of each comparison, not 2,048 independent training experiments. Tests sit inside programs, and generated programs sit inside trained policies. Repeated program sources also occurred.
+This is where an omitted test can matter. A program violating the endpoint rule can still be one of the group's highest-reward answers. Whether that incentive produces a measurable increase in the behavior is an empirical question—the reason for running the paired training comparison.
 
-The pilot remains separate. It motivated the replication; it does not become a convenient fifth seed afterward.
+The recorded configuration used `loss_type="grpo"`, group reward scaling, and `beta=0`. That last setting removes the reference-policy KL penalty. I used a constant learning rate of `1e-6`, one optimization iteration per generated batch, and AdamW with zero weight decay.
 
-## What I actually ran
+My companion note, [Working through GRPO](/writing/working-through-grpo/), develops the objective, clipping, and a worked numerical example, with links to the DeepSeekMath paper. The configuration table at the end of this post records the remaining training settings.
 
-The recorded environment used Python 3.12, PyTorch 2.8.0, Transformers 4.57.1, TRL 0.28.0, datasets 3.5.1, accelerate 1.12.0, and Modal 1.5.5. Training used an L40S GPU with two CPU cores and 32 GiB of memory.
+## Trace full reward back to the failing behavior
 
-These are the historical study settings. They matter for interpreting the run; they are not a claim about which package versions someone should install today.
-
-The main training choices were:
-
-| Setting | Recorded value |
-| --- | --- |
-| Learning rate | `1e-6`, constant |
-| Completions per group | 4 |
-| Maximum completion length | 512 tokens |
-| Temperature / top-p | 0.8 / 0.95 |
-| Repetition penalty | 1.05 |
-| Loss / reward scaling | `grpo` / `group` |
-| KL coefficient, beta | 0 |
-| Iterations per generated batch | 1 |
-| Optimizer / weight decay | AdamW / 0 |
-| Precision | bfloat16 |
-| Per-device batch / gradient accumulation | 1 / 4 |
-
-Specifying `loss_type="grpo"` matters: the name of the trainer alone does not fully specify how it normalizes losses. Likewise, `beta=0` means this run did not use a KL penalty to a reference policy.
-
-[Modal](https://modal.com/docs/guide/gpu) provided the cloud GPU and execution environment. The work split into training and generation, protected execution of candidate programs, and offline analysis of saved results. A working GPU launcher was only one part of that system.
-
-The pipeline needed to preserve the relationship between an exact model state, its generated source, the tests used to grade it, and the resulting score. If any of those drifted during recovery, I would no longer be measuring the experiment I thought I had run.
-
-## Running the experiment also meant repairing the measurement
-
-Generated code had to be executed repeatedly. An early approach created a sandbox per test. The revised approach created a fresh sandbox per program and a fresh restricted Python child process per input.
-
-On a benchmark of seven programs and 2,009 inputs, sequential grading took 391.51 seconds. Four-program grading took 142.49 seconds, a measured 2.75× throughput improvement. Thirteen authored live controls passed, and 84 old/new output-and-status pairs matched. That is evidence about this grading change, not a claim that the entire project became 2.75× faster or that each input had a fresh virtual machine.
-
-Some failures were more subtle than slow execution. A persistence callback failure could be mistaken for a candidate transport failure. If that caused the program to run again, a storage problem would silently create a new measurement attempt.
-
-The fix saved immutable evidence before updating its lookup index, used bounded publication retries, and stopped doing per-test index writes. A fault-injection control failed publication three times and then recovered with execution disabled: the two inputs ran once, and recovery did not rerun them.
-
-There was also a timing error involving monotonic clocks across containers. Monotonic time is useful for elapsed time within a process; arbitrary readings from separate processes should not be compared as a shared clock. The permit logic was changed to use process-local intervals and checked with offset-clock and delayed-grant controls.
-
-The recovery rule was simple to state and harder to implement: an unknown execution outcome must block an automatic retry until it is resolved. A storage failure is neither a zero reward nor permission to generate a fresh attempt.
-
-Training recovery needed more than model weights, too. The saved state included optimizer, scheduler, random-number-generator state, and pending rollout information. A three-step interruption/restart check matched the next fresh rollout. Checkpoints were saved at every update, with retention keeping the last two full trainer states and separate model snapshots at updates 12 and 24.
-
-These details belong in the story because missing or duplicated measurements can change its ending. The completed replication had zero unresolved input outcomes. That does not mean the pipeline never failed; it means the failures were accounted for.
-
-## The grader repair worked on the saved programs
-
-First, I applied all three verifiers to the same 2,048 evaluation draws. Here, “accepted” means receiving full marks from that verifier.
+Applying all three verifiers to the same 2,048 evaluation draws isolated the grading question from the training question:
 
 | Verifier | Accepts audit-passing draws | Accepts audit-failing draws |
 | --- | ---: | ---: |
@@ -152,27 +104,81 @@ First, I applied all three verifiers to the same 2,048 evaluation draws. Here, �
 | Weak | 440 | 38 |
 | Repaired | 440 | 0 |
 
-The repair rejected all 38 observed weak false acceptances and retained all 440 audit-passing draws. The weak verifier's false acceptances were 7.95% of its 478 accepted draws.
+An acceptance here means full marks from that verifier. The weak verifier accepted 478 draws, of which 38—**7.95%**—failed the audit. Replacing eight tests removed every one of those observed false acceptances without rejecting an audit-passing draw or increasing the 57-test budget.
 
-I inspected all 38 draws, representing 33 distinct source hashes. Thirty-four matched the inclusive-endpoint oracle on all 287 unique training-and-audit inputs. One saved witness was:
+I investigated the entire false-acceptance set: 38 draws representing 33 distinct source hashes. The analysis revalidated 10,906 saved input outcomes across the 287 unique training-and-audit inputs for those draws. This used their original execution evidence rather than rerunning the candidates during analysis.
+
+The source and witness inputs revealed two mechanisms.
+
+### A comparison operator changes the interval semantics
+
+Thirty-four draws matched the authored inclusive-endpoint oracle on all 287 inputs. One saved witness was:
 
 ```python
 bookings = [[3664, 3670], [3670, 3676]]
-# Expected: 1
-# Observed: 2
+# Expected capacity: 1
+# Observed capacity: 2
 ```
 
-The implementation expired bookings from a heap only when their end was *strictly less than* the next start. At equal timestamps, the previous booking incorrectly remained active.
+The implementation maintained active bookings in a heap, but removed an old booking only when its end was strictly less than the next start. At equal timestamps, it incorrectly kept that booking active. The half-open specification requires expiring it when the end is less than **or equal to** the next start.
 
-Four other draws had a different tie problem: they sorted events by time alone, leaving input order to decide how equal-time events were processed. These failed the endpoint rule without matching the exact inclusive-bug signature.
+These programs passed all 57 weak tests, but only 127 of the 192 audit cases. The scores were evidence of a specific reproducible mismatch, and the witness made the cause inspectable.
 
-That distinction mattered. A detector for the one bug I expected missed four of the verifier's 38 observed false acceptances. A specific bug signature and a broader correctness audit answer different questions.
+### Input order decides an event tie
 
-This was a clear positive result for grading this cohort. It did not establish that the repair catches every possible wrong program or that eight replacement tests are optimal.
+Four more draws passed the weak verifier while failing the reference and audit. Their code sorted start and end events by time alone, allowing input order to determine which event was processed first at a shared timestamp.
 
-## Then the training results complicated the story
+One saved witness was:
 
-Each condition contributed 512 final draws: 128 from each of four trained policies.
+```python
+bookings = [[5444, 5476], [5420, 5444]]
+# Expected capacity: 1
+# Observed capacity: 2
+```
+
+These draws passed 145 audit cases and matched the inclusive oracle on only 235 of the 287 inputs. They violated the endpoint rule without matching the original exact bug signature.
+
+The broader audit therefore exposed four verifier errors that the target-bug metric missed. I retained the original signature as the primary metric and reported the additional mechanism as follow-up analysis. Together, the two views connected the numerical result to the actual programs that produced it.
+
+## Build recovery around the identity of an observation
+
+Making the experiment traceable required more than calling a trainer and collecting scores. Each observation needed to stay bound to its model checkpoint, generated source, test suite, and execution result—even when a cloud operation failed.
+
+I used [Modal](https://modal.com/docs/guide/gpu) for GPU training and candidate execution, with offline analysis over saved evidence. Three engineering problems became particularly important.
+
+### Increase grading throughput while checking behavior
+
+The initial executor created a sandbox for every test. I changed the execution unit to a fresh sandbox per program, with a fresh restricted Python child process for each input.
+
+On the same seven-program, 2,009-input benchmark, sequential grading took 391.51 seconds and four-program grading took 142.49 seconds: **2.75× measured grading throughput**. Thirteen authored live controls passed, and 84 old/new output-and-status pairs matched. The subsequent evaluation scheduler used four batch workers and up to sixteen program sandboxes.
+
+That measurement describes the grading benchmark. The isolation boundary remained a program sandbox plus per-input child processes, validated for the restricted pure-function task.
+
+### Recover a saved result without creating a new trial
+
+A persistence callback failure could be misclassified as a candidate transport failure. An automatic retry could then execute a program again even though its original result already existed.
+
+I changed the persistence order: commit immutable execution evidence first, then publish its lookup index with bounded retries. I also removed per-test index writes. Recovery could reconstruct the published result from saved evidence.
+
+I tested that property by injecting three publication failures, then recovering with the executor disabled. The two control inputs executed once; recovery performed zero reexecutions. During research recovery, 25 original outcomes were retained, and only the 71 inputs proven not to have been submitted were run.
+
+This made the retry boundary explicit. If execution status was unknown, automatic replay stopped. Infrastructure failures could not silently become zero rewards or extra candidate attempts.
+
+### Resume the same training process
+
+Recovering training required model weights, optimizer and scheduler state, random-number-generator state, and pending rollout information. A three-step interruption/restart control checked those states and matched the subsequent fresh rollout.
+
+I also repaired permit timing that incorrectly compared monotonic-clock readings across containers. Each process instead measured its own elapsed intervals. Four concurrent control batches exercised clock offsets of up to an hour and an injected six-second grant delay before research resumed.
+
+Two completed batch receipts were reconstructed without executing candidates again. Recovery retained 330 evaluation batches and completed the remaining 150, preserving the planned 480-batch population.
+
+The offline analyzer then checked all 2,048 score rows, source bindings, fixed populations, paired initializations, and checkpoint receipts. Its release checks included 38 focused tests covering evidence validation, changed-source rejection, population guards, and seed-level statistics.
+
+These controls gave the final counts a concrete meaning: they referred to a defined set of observations with recoverable evidence.
+
+## Evaluate the learned policy separately
+
+The final evaluation contributed 512 draws per training condition: 128 from each of four policies.
 
 | Final metric | Reference | Weak | Repaired |
 | --- | ---: | ---: | ---: |
@@ -181,54 +187,81 @@ Each condition contributed 512 final draws: 128 from each of four trained polici
 | Inclusive-endpoint signature | 7/512 | 7/512 | 11/512 |
 | Mean audit case accuracy | 40.03% | 39.52% | 42.68% |
 
-Weak training did not have a higher aggregate target-bug frequency than reference training. Repaired training did not reduce it. The repaired condition also had a lower observed full-pass rate than the weak condition.
+The target-bug counts were equal in the reference and weak conditions. Repaired training had more observed target-bug draws and a lower full-pass rate than weak training. The four paired seeds did **not establish amplification of the target bug or a training benefit from the repair**.
 
-With only four seed pairs, these estimates are uncertain. The exploratory paired 95% interval for repaired-minus-weak full-pass rate was −12.48 to +5.84 percentage points, around an observed difference of −3.32 points. The interval method was selected during analysis and is fragile with so few seeds, especially for rare errors.
+For repaired-minus-weak full-pass rate, the observed difference was −3.32 percentage points, with an exploratory paired 95% interval of −12.48 to +5.84. That interval does not establish harm or equivalence either. It comes from four seed differences; the method was selected during analysis and is especially uncertain for rare-event metrics.
 
-The replication therefore did not establish amplification of the target bug or a training benefit from the repair. It also did not establish equivalence or prove that repair harms training.
+Completing the planned evaluation mattered. In the first 32 predetermined final draws per policy, the repaired condition had zero target-bug observations and a higher full-pass rate than weak training. Extending to all 128 planned draws per policy revealed eleven target-bug draws and reversed the full-pass ordering.
 
-The smaller evaluation prefix would have told a more appealing story. Across the first 32 predetermined final draws per policy, the repaired condition had zero target-bug observations. The full 128 draws per policy revealed eleven. On that prefix, repaired training also looked better than weak training on full audit passes; the complete final cohort reversed that ordering.
+Both summaries describe the same trained policies. The difference is evaluation coverage. Reporting the complete cohort prevented an encouraging prefix from becoming the conclusion.
 
-Nothing about the model changed between those two summaries. What changed was how much of the planned evidence the summary included.
+## Look beyond a single definition of improvement
 
-## Several reasonable metrics disagreed
+The final table raised another question: why did repaired training have the highest mean case accuracy but the lowest full-program pass rate?
 
-The repaired condition had the highest mean audit case accuracy and the lowest full-pass rate. That is possible because partial success and complete success measure different parts of the output distribution.
+An exploratory breakdown made the difference visible:
 
-Compared with weak training, the repaired condition produced 63 fewer draws passing zero or one audit case, 80 more passing between two and 191, and 17 fewer passing all 192. These are differences between sampled populations, not tracked transformations of individual programs.
+| Final outcome | Reference | Weak | Repaired |
+| --- | ---: | ---: | ---: |
+| Pass zero or one audit case | 182 | 201 | 138 |
+| Pass 2–191 audit cases | 210 | 181 | 261 |
+| Pass all 192 audit cases | 120 | 130 | 113 |
 
-Even a very wrong algorithm could collect substantial partial credit. A selected program that returned the number of bookings instead of maximum simultaneous capacity passed 39/57 weak tests and 38/57 repaired tests. It passed 74/192 audit cases.
+Relative to weak training, the repaired condition had 63 fewer near-total failures, 80 more partial solutions, and 17 fewer full passes. These are population comparisons, not tracked changes to individual programs. They explain how average test accuracy and complete success can rank the same conditions differently.
 
-The repair also did not improve every property of the grader. In an exploratory comparison of partial-score ordering against audit accuracy, disagreement was 1.61% for the weak verifier and 1.89% for the repaired one. This used the same eligible program pairs for both graders; the pairs shared programs and were not independent experiments. It does not establish the cause of the training result. It shows why a grader's full-acceptance errors do not describe its entire reward signal.
+I also examined the graders' ordering of imperfect answers. On the same eligible program pairs, partial-score disagreement with audit accuracy was 1.61% for the weak verifier and 1.89% for the repaired verifier. The repair improved full-acceptance decisions without improving this partial-ordering measure. Because the pairs share programs and this analysis was exploratory, it supplies a diagnostic rather than an independent training-effect estimate.
 
-Other checks gave similarly different pictures. Of 1,536 final draws, 1,505 contained syntactically valid extracted Python, but only 363 passed the full audit. And 29 responses that reached the token cap still contained complete, audit-passing programs: the generation limit was reached during prose after the code.
+A concrete example helps: one generated program returned the number of bookings instead of maximum concurrent bookings. That wrong algorithm still earned 39/57 on the weak suite and 38/57 on the repaired suite. Repairing the endpoint omission left other sources of partial reward intact.
 
-One passing program even came with an explanation describing the wrong endpoint ordering. The executable code sorted the ties correctly. That example does not reveal hidden reasoning or intent. It does show why I needed to evaluate what the code did rather than trust what the accompanying explanation said.
+I checked presentation-level signals as well. Of 1,536 final responses, 1,505 contained syntactically valid extracted Python, while 363 passed the full audit. Twenty-nine responses reached the token cap after producing complete, audit-passing code. One passing program's prose described the wrong endpoint ordering even though its executable code handled ties correctly.
 
-These were exploratory analyses after looking at the outcomes. They help describe the behavior, but they do not replace the declared primary comparisons.
+Those observations motivated separate checks for syntax, extraction, functional behavior, and response format. A single proxy would have obscured distinctions that were visible in the saved execution evidence. These analyses followed inspection of the outcomes; the fixed primary comparisons remained the training results above.
 
-## Why every logged loss was zero
+## Diagnose the update, not just the loss chart
 
-All 288 logged scalar losses were `0.0` or `-0.0`. Yet 285 updates had positive gradient norms, and parameter hashes changed at every update boundary.
+All 288 logged scalar losses were `0.0` or `-0.0`. Taken alone, that could look like training had stalled. But 285 updates had positive gradient norms, and parameter hashes changed at every update boundary.
 
-The distinction is between the value of an objective and its derivative. Centered group advantages can cancel in the reported scalar while their gradients, weighted by different token log probabilities, do not cancel. A zero number on the loss chart is not enough to conclude that learning stopped.
+With centered group advantages, the scalar objective can cancel while gradients weighted by different token log probabilities remain nonzero. I checked gradient norms, parameter changes, and reload evidence together. The [GRPO companion](/writing/working-through-grpo/#how-can-the-loss-be-zero-while-the-gradient-is-not) works through the math.
 
-Three groups genuinely had zero reward variance: all four completions received the same reward. With group-relative advantages and `beta=0`, those groups supplied no reward-ranking gradient.
+Three groups actually had zero reward variance. With identical rewards, group-relative advantages were zero; with `beta=0`, those groups supplied no reward-ranking gradient. Their parameter hashes still changed, consistent with [AdamW's retained optimizer moments](https://docs.pytorch.org/docs/2.8/generated/torch.optim.AdamW.html). I did not decompose those particular tensor updates to attribute their movement quantitatively.
 
-Even then, the parameter hashes changed. [AdamW retains optimizer moments](https://docs.pytorch.org/docs/2.8/generated/torch.optim.AdamW.html), so earlier gradients can contribute to a later update even when its current gradient is zero. That is consistent with the observed behavior; I did not perform a tensor-level decomposition of the momentum contribution.
+This distinction mattered operationally: objective value, current gradient, optimizer state, and parameter displacement each describe a different part of an update.
 
-The [GRPO note](/writing/working-through-grpo/#how-can-the-loss-be-zero-while-the-gradient-is-not) works through the cancellation with a small example. For this experiment, it meant checking gradients, state changes, and reload evidence together instead of diagnosing training from one scalar.
+## What this experiment establishes—and what comes next
 
-## What I can take from this
+The project produced an audited verifier intervention, a source-backed taxonomy of its observed failures, and a completed paired training comparison. The execution system supported fault-tested persistence recovery, full-state training resume, and offline validation of the evaluation population.
 
-The experiment began with an incomplete grader and a plausible training hypothesis. It ended with stronger evidence for the grader problem than for the training effect.
+The empirical result is precise: replacing eight tests corrected every observed full-score false acceptance while retaining every observed audit-passing draw. The training comparison remained unresolved, and the follow-up analyses identified specific ways acceptance decisions, partial rewards, and complete program success can disagree.
 
-I can say that the weak verifier accepted 38 observed audit-failing draws, that the fixed repair rejected all of them, and that it retained all observed audit-passing draws. I cannot say that this four-seed study showed reward hacking becoming more common, or that fixing those tests improved the main training outcomes. Nor does the evidence establish that the model intentionally exploited the grader.
+The scope is one booking task, one 1.5B model, four training seeds, and 24 updates per run. The 192-case audit is an existing development suite, so its full-pass metric is a finite behavioral check. The findings establish neither universal verifier reliability nor intentional exploitation by the model.
 
-The scope is small: one task, one model, short training runs, and an existing development audit. Short training, rare errors, sampled-group variation, and changed partial rewards are possible reasons for the inconclusive training comparison. This study does not distinguish among them.
+A useful follow-up would separate two interventions: adding endpoint coverage and improving the ordering of partially correct programs. I would specify those comparisons before collecting outcomes, use a fresh audit, and budget additional independent seeds and enough evaluation draws to measure rare endpoint errors. That would test which property of the reward matters for learning, rather than treating the repaired verifier as a single undifferentiated change.
 
-A next experiment would need its own plan: more independent seeds if justified, a fresh audit, and a clear decision about which behavior or reward property to test. Continuing until a favorable checkpoint appears would answer a different question.
+What I take forward is a way to investigate a reward failure end to end: construct a precise mismatch, trace it to executable behavior, intervene on the verifier, preserve observations through system failures, and measure the learned policy independently. The result is an experiment whose conclusions can be followed all the way back to the code and evidence that produced them.
 
-For me, the useful result is the separation between a test suite that grades saved programs better and a reward signal that demonstrably produces better learned behavior. This experiment established the first on its observed cohort. The second remains open.
+## Recorded setup
 
-*Companion note: [Working through GRPO](/writing/working-through-grpo/). The numerical results here come from the completed booking-capacity study record; the separate pilot is not pooled with the replication.*
+Training used an L40S GPU, two CPU cores, and 32 GiB memory. The pinned environment was Python 3.12, Modal 1.5.5, PyTorch 2.8.0, Transformers 4.57.1, TRL 0.28.0, datasets 3.5.1, and accelerate 1.12.0.
+
+| Setting | Recorded value |
+| --- | --- |
+| Starting model | Qwen2.5-Coder-1.5B-Instruct |
+| Training conditions / seeds | 3 / 4 |
+| Updates per run | 24 |
+| Learning rate | `1e-6`, constant |
+| Completions per group | 4 |
+| Maximum completion length | 512 tokens |
+| Temperature / top-p | 0.8 / 0.95 |
+| Repetition penalty | 1.05 |
+| Loss / reward scaling | `grpo` / `group` |
+| KL coefficient | `beta=0` |
+| Iterations per generated batch | 1 |
+| Optimizer / weight decay | AdamW / 0 |
+| Precision | bfloat16 |
+| Per-device batch / gradient accumulation | 1 / 4 |
+
+Checkpoints were saved after every update; retention kept the last two full trainer states and separate model snapshots at updates 12 and 24. Thirty-one evaluation draws failed source extraction and remained in the denominator as failures; the other 2,017 had sandbox provenance. Repeated generated sources were retained as draws rather than treated as independent programs.
+
+The numerical results come from the completed booking-capacity study record. Final analysis used a 13.68 MiB compact result/provenance bundle and 19.20 MiB of targeted failure evidence, with model and optimizer checkpoints retained in Modal. That analysis required no new model calls or candidate execution.
+
+*For the algorithm behind the training loop, see [Working through GRPO](/writing/working-through-grpo/).*
