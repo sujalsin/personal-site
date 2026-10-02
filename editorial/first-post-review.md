@@ -8,7 +8,7 @@ Both posts are unpublished (`draft: true`). This branch is intended for review. 
 ## Review before publishing
 
 1. Confirm the first-person framing sounds like you. The questions and sequence are grounded in the supplied study record; no anecdotes about your background, emotions, or time spent were invented. Personal details from your actual experience would make the opening more distinctive.
-2. Supply the public research repository or evidence URL you want readers to use. The draft does not invent a source link or copy internal report paths that would be broken on the website. The large study attachment is not committed to this website repository.
+2. Review the evidence snapshot at `c698e7970f0e57729cd9c5142ee63002b1036fc8` in [sujalsin/verifier-rl](https://github.com/sujalsin/verifier-rl/tree/c698e7970f0e57729cd9c5142ee63002b1036fc8) and [research fix PR #1](https://github.com/sujalsin/verifier-rl/pull/1) before publication. The post now uses verified commit-pinned links and a tested portable reproduction command. The large study record remains in the research repository.
 3. Decide whether the Modal discussion should become a separate reproducibility tutorial. This draft explains the actual environment and architecture, but does not pretend the website contains a runnable training launcher or the research checkpoints. A tutorial should use your research source and recovery controls.
 4. Set the intended publication dates. `2026-10-02` is the draft preparation date, not an inferred date for all experiments. Seed identifiers such as `20261011` are not dates of execution.
 5. Publish the linked pair together, or remove links to any companion that remains unpublished. Set each approved post to `draft: false`, build, then merge when ready.
@@ -36,7 +36,7 @@ Equations use the Markdown math pipeline and bundled KaTeX styles. The existing 
 
 The main post now opens with the research question, implemented system, and measured contribution. It explains why the task permits an inspectable intervention, makes experimental controls explicit, traces both failure mechanisms to witnesses, and describes recovery through the invariants and fault-injection evidence it preserves. The full training comparison remains prominent, while scope limitations are consolidated instead of repeated throughout the narrative. Historical package settings sit at the end so they do not interrupt the research story.
 
-The intended audience is a technical researcher or research-engineering reviewer. The post does not claim novelty, frontier scale, improved trained-policy performance, or a guaranteed hiring outcome. Links to inspectable research code and evidence are the most important remaining publication addition.
+The intended audience is a technical researcher or research-engineering reviewer. The post does not claim novelty, frontier scale, improved trained-policy performance, or a guaranteed hiring outcome. Commit-pinned implementation, tests, reports, and reproduction links have now been added.
 
 ## Target-role review, 2026-10-02
 
@@ -53,4 +53,16 @@ The current post is strongest as evidence of careful research engineering. It do
 
 The opening now identifies project-specific implementation versus TRL/Modal, summarizes three contributions, links to the main technical sections, and includes a figure with the four seed pairs. The SVG is generated from `editorial/data/booking-study-summary.json` by `scripts/render-booking-figure.py` (requires Python, matplotlib, and numpy). These are transcribed summary measurements, not a substitute for the underlying execution records. They are included in the source for inspection.
 
-Before sending the post as application evidence, add working research links to the experiment configuration, reward/executor implementation, a representative failure artifact, and the analysis command with its required inputs. Prefer stable commit links. These should lead to the actual research repository; the personal-site source alone does not verify the research implementation.
+The post now links the experiment configuration, reward/executor implementation, source-bound failure artifacts, and analysis command with its required inputs. Links lead to an inspected research commit; the personal-site source is used only for presentation.
+
+## Public repository verification
+
+Inspected public research `main` at `aacf98d3b49c61a1bb65c20f699607840d560f59`. Source review confirmed the fixed repair, full training-input execution with subset scoring, unknown-result reward gate, recovery hooks, and associated regression tests.
+
+The portable CSV had LF bytes while its unchanged source manifest expected CRLF. The original command failed at the checksum guard. [Research draft PR #1](https://github.com/sujalsin/verifier-rl/pull/1) restores exactly the manifest-matching CSV bytes and adds a file-specific `-text` attribute. No values, source manifests, historical reports, or research algorithms were changed. Snapshot `c698e7970f0e57729cd9c5142ee63002b1036fc8` includes that fix; its remote CSV Git blob was verified as `328df0afacf98c0b1defe6d6287d7d683162d1bf`.
+
+The unchanged portable analyzer then completed over all 2,048 rows. Website figure counts and every training-seed pair matched the recomputation. This was an arithmetic reproduction, not new training, candidate execution, or a full private-evidence audit.
+
+The article was also corrected to match published clarifications: the training/audit suites share the empty input; all conditions execute 96 training inputs and score 96/57/57; the model uses FP32 weights with BF16 autocast.
+
+The research PR and website PR remain drafts. The reproduction command pins the corrected research snapshot so it does not depend on when the fix reaches main.

@@ -114,7 +114,7 @@ Here $T_i$ is the number of included completion tokens, and $k_{i,t}$ denotes a 
 
 The reference policy and the old policy have different roles. The old policy supplies the denominator associated with the sampled data. The reference policy provides an anchor for regularization. They should not be treated as interchangeable just because both appear in a training implementation.
 
-In my booking study, $\beta=0$, so the KL term contributed nothing. The recorded setup used group-scaled rewards and `loss_type="grpo"`, which normalizes token losses within each completion before averaging completions. Other loss variants change that weighting.
+In my booking study, $\beta=0$, so the KL term contributed nothing. The [recorded trainer setup](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/modal_booking_replication.py#L248-L279) used group-scaled rewards and `loss_type="grpo"`, which normalizes token losses within each completion before averaging completions. Other loss variants change that weighting.
 
 I use the [TRL 0.28.0 documentation](https://huggingface.co/docs/trl/v0.28.0/grpo_trainer) to interpret the saved configuration. “I used GRPOTrainer” is not enough to reconstruct a run: the loss choice, reward scaling, token masks, and number of iterations also matter.
 
@@ -179,7 +179,7 @@ The weak suite could give full reward to the wrong endpoint behavior. The repair
 
 That is the connection I want to keep in mind while reading the equations: the advantage is only as meaningful as the comparison the reward function creates. Whether a proposed change improves the model still needs an experiment.
 
-Return to [When passing tests becomes the reward](/writing/fixing-the-grader/) for the complete study story, setup, and results.
+Return to [When passing tests becomes the reward](/writing/fixing-the-grader/) for the complete study story, setup, results, and links to the implementation.
 
 ## Reading alongside this note
 

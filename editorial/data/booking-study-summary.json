@@ -3,12 +3,77 @@
   "description": "Transcribed aggregate measurements for the article figure, not raw execution evidence or a new experiment.",
   "audit_cases": 192,
   "evaluation_draws": 2048,
-  "conditions": ["Reference", "Weak", "Repaired"],
-  "accepts_audit_failing": [0, 38, 0],
-  "accepts_audit_passing": [440, 440, 440],
+  "conditions": [
+    "Reference",
+    "Weak",
+    "Repaired"
+  ],
+  "accepts_audit_failing": [
+    0,
+    38,
+    0
+  ],
+  "accepts_audit_passing": [
+    440,
+    440,
+    440
+  ],
   "final_draws_per_policy": 128,
-  "seeds": [20261011, 20261012, 20261013, 20261014],
-  "final_audit_passes_by_seed": [[29, 21, 24], [32, 45, 33], [27, 31, 22], [32, 33, 34]],
-  "final_target_signature_by_seed": [[2, 2, 2], [3, 0, 1], [1, 4, 5], [1, 1, 3]],
-  "notes": "Four training seeds are the replication units. All draws remain in the denominators. The audit is an existing development suite. Grader results pool baseline, intermediate, and final outputs; training results use final outputs only. Seed identifiers are not execution dates."
+  "seeds": [
+    20261011,
+    20261012,
+    20261013,
+    20261014
+  ],
+  "final_audit_passes_by_seed": [
+    [
+      29,
+      21,
+      24
+    ],
+    [
+      32,
+      45,
+      33
+    ],
+    [
+      27,
+      31,
+      22
+    ],
+    [
+      32,
+      33,
+      34
+    ]
+  ],
+  "final_target_signature_by_seed": [
+    [
+      2,
+      2,
+      2
+    ],
+    [
+      3,
+      0,
+      1
+    ],
+    [
+      1,
+      4,
+      5
+    ],
+    [
+      1,
+      1,
+      3
+    ]
+  ],
+  "notes": "Four training seeds are the replication units. All draws remain in the denominators. The audit is an existing development suite. Grader results pool baseline, intermediate, and final outputs; training results use final outputs only. Seed identifiers are not execution dates.",
+  "verified_against": {
+    "repository_commit": "c698e7970f0e57729cd9c5142ee63002b1036fc8",
+    "score_table": "https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/reports/booking-blog/program_scores.csv",
+    "score_csv_sha256": "d6cf30e0e4817d620378991cd058e629d952f56de2c476a147e4f953b33f84fd",
+    "method": "Recomputed with the unchanged scripts/booking_publication.py; all figure counts and per-seed values matched."
+  }
 }

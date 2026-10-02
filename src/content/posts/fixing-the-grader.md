@@ -5,6 +5,8 @@ date: "2026-10-02"
 draft: true
 ---
 
+**[Code](https://github.com/sujalsin/verifier-rl/tree/c698e7970f0e57729cd9c5142ee63002b1036fc8) · [Research report](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/docs/booking_replication_analysis.md) · [Reproduce the numbers](#reproduce-the-published-numbers)**
+
 I wanted to understand what happens when the tests used to train a coding model leave out part of the specification.
 
 A test suite can be useful without being complete. But once its score becomes a reinforcement-learning reward, every omission becomes part of the feedback the model learns from. A program can receive full reward while implementing the wrong behavior. Repairing that omission raises a second question: does a better grader produce a better trained policy?
@@ -13,7 +15,7 @@ I built an execution-based training and evaluation pipeline around Qwen2.5-Coder
 
 Three results organize the story:
 
-- **A measurable grader repair.** Replacing eight tests rejected all 38 observed false acceptances across 2,048 evaluation draws, while retaining all 440 draws that passed a separate 192-case audit.
+- **A measurable grader repair.** Replacing eight tests rejected all 38 observed false acceptances across 2,048 evaluation draws, while retaining all 440 draws that passed a 192-case development audit.
 - **A separate test of learning.** The four-seed comparison did not establish better training outcomes. Inspecting all false acceptances exposed a second failure mechanism, and the full evaluation changed the picture suggested by a shorter sample.
 - **A traceable execution system.** Fault-injection checks verified recovery without repeating completed candidate executions. A controlled benchmark measured 2.75× grading throughput, and a full-state restart control matched the next fresh training rollout.
 
@@ -59,9 +61,9 @@ $$
 R_S(p)=\frac{1}{|S|}\sum_{x\in S}\mathbf{1}[p(x)=f(x)].
 $$
 
-Here, $f(x)$ is the expected answer. The repair held the test count at 57 while changing which behaviors the reward distinguished. It matched the grading budget in test count; difficulty and information content necessarily changed with the cases.
+Here, $f(x)$ is the expected answer. The repair held the number of **scored tests** at 57 while changing which behaviors the reward distinguished. Every condition still executed the same 96 training inputs; the trusted grader selected the relevant subset for its reward. This controlled scored test count, not execution cost, difficulty, or information content. The [repair definition](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/verifier_rl/booking_replication.py#L28-L40) specifies the eight removed and eight added cases.
 
-A separate 192-case development audit supplied a common yardstick across conditions. Its cases never supplied the scalar training reward. Throughout this post, “audit-passing” means passing all 192 cases.
+A 192-case development audit supplied a common yardstick across conditions. The audit suite was not used to compute training rewards, but it shares the mandatory empty-input case with the training suite: 96 + 192 cases represent 287 unique inputs. The [publication clarification](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/docs/booking_publication_clarifications.md) documents this overlap. Throughout this post, “audit-passing” means passing all 192 audit cases.
 
 That gave me two comparisons to keep separate: apply different graders to the **same saved programs**, and train **different policies** with those graders before evaluating them against the common audit.
 
@@ -71,7 +73,7 @@ An earlier one-seed pilot produced three target-bug programs in 32 final weak-co
 
 Within each seed, I ran reference, weak, and repaired training from the same Qwen2.5-Coder-1.5B-Instruct weights with fresh optimizers. The prompt and first rollout tokens matched across the three conditions. These matches were checked against saved identities and checkpoint receipts.
 
-I froze the repair before seeing the replication outcomes and fixed the primary comparison at update 24. Each run used four completions per update, giving 288 optimizer updates and 1,152 training completions across twelve runs.
+I froze the repair before seeing the replication outcomes and fixed the primary comparison at update 24. The [experiment definition](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/verifier_rl/booking_replication.py#L62-L88) records the seeds, arms, fixed repair, and evaluation counts. Each run used four completions per update, giving 288 optimizer updates and 1,152 training completions across twelve runs.
 
 Evaluation used one shared 128-draw baseline, 32 draws per policy at update 12, and 128 per policy at update 24:
 
@@ -100,7 +102,7 @@ The numerator measures how a completion scored relative to its companions; the d
 
 This is where an omitted test can matter. A program violating the endpoint rule can still be one of the group's highest-reward answers. Whether that incentive produces a measurable increase in the behavior is an empirical question—the reason for running the paired training comparison.
 
-The recorded configuration used `loss_type="grpo"`, group reward scaling, and `beta=0`. That last setting removes the reference-policy KL penalty. I used a constant learning rate of `1e-6`, one optimization iteration per generated batch, and AdamW with zero weight decay.
+The [recorded trainer construction](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/modal_booking_replication.py#L248-L279) used `loss_type="grpo"`, group reward scaling, and `beta=0`. That last setting removes the reference-policy KL penalty. I used a constant learning rate of `1e-6`, one optimization iteration per generated batch, and AdamW with zero weight decay.
 
 My companion note, [Working through GRPO](/writing/working-through-grpo/), develops the objective, clipping, and a worked numerical example, with links to the DeepSeekMath paper. The configuration table at the end of this post records the remaining training settings.
 
@@ -132,7 +134,7 @@ bookings = [[3664, 3670], [3670, 3676]]
 
 The implementation maintained active bookings in a heap, but removed an old booking only when its end was strictly less than the next start. At equal timestamps, it incorrectly kept that booking active. The half-open specification requires expiring it when the end is less than **or equal to** the next start.
 
-These programs passed all 57 weak tests, but only 127 of the 192 audit cases. The scores were evidence of a specific reproducible mismatch, and the witness made the cause inspectable.
+These programs passed all 57 weak tests, but only 127 of the 192 audit cases. The scores were evidence of a specific reproducible mismatch, and the witness made the cause inspectable. The [failure report](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/docs/booking_replication_analysis.md#two-observed-failure-mechanisms) describes both mechanisms; the [full failure catalog](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/reports/booking-replication/analysis.json) preserves source, hashes, witnesses, and score bindings.
 
 ### Input order decides an event tie
 
@@ -168,15 +170,15 @@ That measurement describes the grading benchmark. The isolation boundary remaine
 
 A persistence callback failure could be misclassified as a candidate transport failure. An automatic retry could then execute a program again even though its original result already existed.
 
-I changed the persistence order: commit immutable execution evidence first, then publish its lookup index with bounded retries. I also removed per-test index writes. Recovery could reconstruct the published result from saved evidence.
+I changed the persistence order: commit immutable execution evidence first, then publish its lookup index with bounded retries. I also removed per-test index writes. Recovery could reconstruct the published result from saved evidence. The [storage implementation](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/verifier_rl/program_storage.py) and [continuation tests](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/tests/test_program_storage.py#L39-L73) make the allowed retry boundary explicit.
 
 I tested that property by injecting three publication failures, then recovering with the executor disabled. The two control inputs executed once; recovery performed zero reexecutions. During research recovery, 25 original outcomes were retained, and only the 71 inputs proven not to have been submitted were run.
 
-This made the retry boundary explicit. If execution status was unknown, automatic replay stopped. Infrastructure failures could not silently become zero rewards or extra candidate attempts.
+If execution status was unknown, automatic replay stopped. The [reward adapter](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/verifier_rl/program_grading.py#L263-L269) blocks an update when an input outcome is unresolved, preserving the rollout and checkpoint. Infrastructure failures could not silently become zero rewards or extra candidate attempts.
 
 ### Resume the same training process
 
-Recovering training required model weights, optimizer and scheduler state, random-number-generator state, and pending rollout information. A three-step interruption/restart control checked those states and matched the subsequent fresh rollout.
+Recovering training required model weights, optimizer and scheduler state, random-number-generator state, and pending rollout information. A three-step interruption/restart control checked those states and matched the subsequent fresh rollout. The [trainer wrapper](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/verifier_rl/grpo_recovery.py#L153-L209) adds generation and checkpoint recovery hooks while keeping TRL’s GRPO loss and advantages unchanged; its [regression tests](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/tests/test_grpo_recovery.py#L24-L85) check saved-group reuse and rejection of ambiguous or mismatched state.
 
 I also repaired permit timing that incorrectly compared monotonic-clock readings across containers. Each process instead measured its own elapsed intervals. Four concurrent control batches exercised clock offsets of up to an hour and an injected six-second grant delay before research resumed.
 
@@ -221,7 +223,7 @@ Relative to weak training, the repaired condition had 63 fewer near-total failur
 
 I also examined the graders' ordering of imperfect answers. On the same eligible program pairs, partial-score disagreement with audit accuracy was 1.61% for the weak verifier and 1.89% for the repaired verifier. The repair improved full-acceptance decisions without improving this partial-ordering measure. Because the pairs share programs and this analysis was exploratory, it supplies a diagnostic rather than an independent training-effect estimate.
 
-A concrete example helps: one generated program returned the number of bookings instead of maximum concurrent bookings. That wrong algorithm still earned 39/57 on the weak suite and 38/57 on the repaired suite. Repairing the endpoint omission left other sources of partial reward intact.
+A concrete example helps: one generated program returned the number of bookings instead of maximum concurrent bookings. That wrong algorithm still earned 39/57 on the weak suite and 38/57 on the repaired suite. Its [saved source and scores](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/reports/booking-behavior/findings.json) are included with the other inspected examples. Repairing the endpoint omission left other sources of partial reward intact.
 
 I checked presentation-level signals as well. Of 1,536 final responses, 1,505 contained syntactically valid extracted Python, while 363 passed the full audit. Twenty-nine responses reached the token cap after producing complete, audit-passing code. One passing program's prose described the wrong endpoint ordering even though its executable code handled ties correctly.
 
@@ -267,11 +269,37 @@ Training used an L40S GPU, two CPU cores, and 32 GiB memory. The pinned environm
 | KL coefficient | `beta=0` |
 | Iterations per generated batch | 1 |
 | Optimizer / weight decay | AdamW / 0 |
-| Precision | bfloat16 |
+| Precision | FP32 model weights with BF16 autocast |
 | Per-device batch / gradient accumulation | 1 / 4 |
 
 Checkpoints were saved after every update; retention kept the last two full trainer states and separate model snapshots at updates 12 and 24. Thirty-one evaluation draws failed source extraction and remained in the denominator as failures; the other 2,017 had sandbox provenance. Repeated generated sources were retained as draws rather than treated as independent programs.
 
-The numerical results come from the completed booking-capacity study record. Final analysis used a 13.68 MiB compact result/provenance bundle and 19.20 MiB of targeted failure evidence, with model and optimizer checkpoints retained in Modal. That analysis required no new model calls or candidate execution.
+The numerical results come from the [completed booking-capacity study record](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/docs/booking_complete_study_record.md) (approximately 38 MiB). Final analysis used a 13.68 MiB compact result/provenance bundle and 19.20 MiB of targeted failure evidence, with model and optimizer checkpoints retained in Modal. That analysis required no new model calls or candidate execution.
+
+
+## Reproduce the published numbers
+
+The [portable score table](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/reports/booking-blog/program_scores.csv), [source manifest](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/reports/booking-blog/source_manifest.json), and [analysis script](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/scripts/booking_publication.py) are included in the public repository. With Python 3.11 or later, the following uses the standard library to recompute the results:
+
+```bash
+git clone https://github.com/sujalsin/verifier-rl.git
+cd verifier-rl
+git checkout c698e7970f0e57729cd9c5142ee63002b1036fc8
+python3 scripts/booking_publication.py
+```
+
+The script verifies the score table's checksum and the fixed population of 2,048 draws, then writes the confusion counts, final outcomes, paired comparisons, and other descriptive analyses to `reports/booking-blog/analysis.json`. It runs offline after checkout, with no model loading, candidate execution, or cloud credentials.
+
+This reproduces the arithmetic from published saved scores. The [methods appendix](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/docs/booking_verifier_blog_methods.md) describes the additional archive checks and the boundary between portable analysis and full private-bundle validation. Model and optimizer checkpoints are outside this source checkout.
+
+For an implementation review, these are the main entry points:
+
+| Question | Source |
+| --- | --- |
+| How is the controlled repair specified? | [Experiment and repair](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/verifier_rl/booking_replication.py#L17-L88) |
+| How does execution produce a training reward? | [Program executor](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/verifier_rl/program_execution.py#L189-L311) and [validated reward adapter](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/verifier_rl/program_grading.py#L229-L269) |
+| How are retries kept from changing observations? | [Storage recovery](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/verifier_rl/program_storage.py) and [continuation tests](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/tests/test_program_storage.py#L39-L73) |
+| What happens when training restarts? | [Trainer recovery hooks](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/verifier_rl/grpo_recovery.py#L153-L209) and [recovery tests](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/tests/test_grpo_recovery.py) |
+| Where are the results and failure examples? | [Research report](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/docs/booking_replication_analysis.md), [failure catalog](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/reports/booking-replication/analysis.json), and [source-bound examples](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/reports/booking-behavior/findings.json) |
 
 *For the algorithm behind the training loop, see [Working through GRPO](/writing/working-through-grpo/).*
