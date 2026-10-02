@@ -2,7 +2,7 @@
 title: "When passing tests becomes the reward"
 description: "How I built an execution-based RL evaluation pipeline, repaired a verifier blind spot, and measured whether the repair improved training."
 date: "2026-10-02"
-draft: true
+draft: false
 ---
 
 **[Code](https://github.com/sujalsin/verifier-rl/tree/c698e7970f0e57729cd9c5142ee63002b1036fc8) · [Research report](https://github.com/sujalsin/verifier-rl/blob/c698e7970f0e57729cd9c5142ee63002b1036fc8/docs/booking_replication_analysis.md) · [Reproduce the numbers](#reproduce-the-published-numbers)**

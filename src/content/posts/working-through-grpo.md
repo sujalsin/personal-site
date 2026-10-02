@@ -2,7 +2,7 @@
 title: "Working through GRPO"
 description: "From four scored answers to a policy update: my notes on group-relative advantages, clipping, and a loss that can be zero while learning continues."
 date: "2026-10-02"
-draft: true
+draft: false
 ---
 
 In my [booking-capacity experiment](/writing/fixing-the-grader/), the training loop sampled four programs, ran tests, and used their scores to update a language model.
