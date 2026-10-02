@@ -1,6 +1,7 @@
 ---
 import { formatDate } from '../lib/posts';
-const { title, description, date } = Astro.props;
+import 'katex/dist/katex.min.css';
+const { title, description, date, draft = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
 <!doctype html>
@@ -11,6 +12,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta name="theme-color" content="#fafaf8" />
     <title>{title} — Sujal Singh</title>
     <meta name="description" content={description} />
+    {draft && <meta name="robots" content="noindex, nofollow" />}
     <meta property="og:title" content={`${title} — Sujal Singh`} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="article" />
@@ -28,6 +30,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
       </header>
       <main id="main" class="article">
         <a class="back-link" href="/#writing">All writing</a>
+        {draft && <p class="draft-notice">Draft · visible in local development only</p>}
         <header class="article-heading"><time datetime={date}>{formatDate(date)}</time><h1>{title}</h1><p>{description}</p></header>
         <article class="prose"><slot /></article>
       </main>

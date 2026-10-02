@@ -52,9 +52,11 @@ For extra domain protection, GitHub account **Settings → Pages → Add a domai
 4. Change `draft: true` to `draft: false` when ready.
 5. Commit and push to `main`. The workflow builds and publishes automatically.
 
-Posts appear on the homepage, newest first, and at `/writing/your-post-slug/`. Drafts are excluded from the generated site. Draft source is still visible to anyone who can read the repository, so keep confidential drafts outside a public repository. There is no scheduled publication: a non-draft post is published on the next build, regardless of its date.
+Posts appear on the homepage, newest first, and at `/writing/your-post-slug/`. `npm run dev` includes drafts for local review; draft articles have a visible notice and a noindex directive. `npm run build` excludes drafts. Draft source is still visible to anyone who can read the repository, so keep confidential drafts outside a public repository. There is no scheduled publication: a non-draft post is published on the next build, regardless of its date.
 
-Put images in `public/images/` and use Markdown like `![Descriptive alt text](/images/result.png)`. Code fences are highlighted. Equation rendering is not installed yet; ordinary Markdown and MDX are ready.
+Put images in `public/images/` and use Markdown like `![Descriptive alt text](/images/result.png)`. Code fences are highlighted. Markdown equations render at build time with KaTeX: use `$x^2$` inline or put `$$` on separate lines around a display equation. Equations include MathML for assistive technology and use locally bundled fonts. For MDX, configure its math plugins separately before using equation syntax.
+
+The first research drafts are at `/writing/fixing-the-grader/` and `/writing/working-through-grpo/` in local development. See `editorial/first-post-review.md` for the outstanding editorial decisions before publication.
 
 ## Edit the profile
 
