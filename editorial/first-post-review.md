@@ -37,3 +37,20 @@ Equations use the Markdown math pipeline and bundled KaTeX styles. The existing 
 The main post now opens with the research question, implemented system, and measured contribution. It explains why the task permits an inspectable intervention, makes experimental controls explicit, traces both failure mechanisms to witnesses, and describes recovery through the invariants and fault-injection evidence it preserves. The full training comparison remains prominent, while scope limitations are consolidated instead of repeated throughout the narrative. Historical package settings sit at the end so they do not interrupt the research story.
 
 The intended audience is a technical researcher or research-engineering reviewer. The post does not claim novelty, frontier scale, improved trained-policy performance, or a guaranteed hiring outcome. Links to inspectable research code and evidence are the most important remaining publication addition.
+
+## Target-role review, 2026-10-02
+
+Compared against the current [Research Engineer, Frontier Evals & Environments posting](https://openai.com/careers/research-engineer-frontier-evals-and-environments-san-francisco/). The following is an editorial assessment of the evidence, not an OpenAI hiring decision.
+
+| Role emphasis | Evidence this project can support |
+| --- | --- |
+| Measurement reliability and variance | Paired training seeds, complete evaluation cohorts, separate audit, and a visible comparison of grading versus training results |
+| Behavioral investigation | All 38 false acceptances inspected; witness inputs distinguish two mechanisms |
+| Evaluation systems | Execution batching, provenance checks, persistence fault injection, and validated restart controls |
+| Experiment ownership | A defined behavioral question carried through a frozen intervention, training, analysis, and a concrete follow-up |
+
+The current post is strongest as evidence of careful research engineering. It does not yet demonstrate ambitious multi-task or long-horizon environments, large training-run impact, a novel RL algorithm, or an automated self-improvement system. Those gaps should be acknowledged in an application assessment, not filled with unsupported language in the post.
+
+The opening now identifies project-specific implementation versus TRL/Modal, summarizes three contributions, links to the main technical sections, and includes a figure with the four seed pairs. The SVG is generated from `editorial/data/booking-study-summary.json` by `scripts/render-booking-figure.py` (requires Python, matplotlib, and numpy). These are transcribed summary measurements, not a substitute for the underlying execution records. They are included in the source for inspection.
+
+Before sending the post as application evidence, add working research links to the experiment configuration, reward/executor implementation, a representative failure artifact, and the analysis command with its required inputs. Prefer stable commit links. These should lead to the actual research repository; the personal-site source alone does not verify the research implementation.

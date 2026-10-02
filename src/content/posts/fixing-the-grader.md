@@ -1,6 +1,6 @@
 ---
 title: "When passing tests becomes the reward"
-description: "Building a verifiable code-RL experiment: controlled reward interventions, failure analysis, and recovery that preserves the evidence."
+description: "How I built an execution-based RL evaluation pipeline, repaired a verifier blind spot, and measured whether the repair improved training."
 date: "2026-10-02"
 draft: true
 ---
@@ -9,11 +9,21 @@ I wanted to understand what happens when the tests used to train a coding model 
 
 A test suite can be useful without being complete. But once its score becomes a reinforcement-learning reward, every omission becomes part of the feedback the model learns from. A program can receive full reward while implementing the wrong behavior. Repairing that omission raises a second question: does a better grader produce a better trained policy?
 
-I built an execution-based GRPO training and evaluation pipeline to investigate both questions. The work involved designing a controlled verifier intervention, running twelve training jobs, tracing generated programs back to their execution evidence, and recovering interrupted work without silently changing the experiment.
+I built an execution-based training and evaluation pipeline around Qwen2.5-Coder-1.5B-Instruct and ran twelve GRPO training jobs: three verifiers across four paired seeds. My work covered the task and test suites, reward integration, sandbox execution and recovery, experiment orchestration, and offline analysis. TRL supplied the GRPO trainer; Modal supplied the cloud compute and sandbox primitives.
 
-Across 2,048 evaluation draws, an eight-test replacement rejected all **38 observed false acceptances** while retaining all **440 audit-passing draws**. Investigating those failures uncovered two endpoint mechanisms, including one the original target-bug detector missed. The four-seed training comparison did not establish a corresponding improvement in learned behavior.
+Three results organize the story:
 
-That separation became the central result: I could demonstrate that the repair improved full-acceptance decisions on the evaluated programs, then test—and leave unresolved—the stronger claim about training. Along the way, I built the controls needed to tell a model failure from an execution failure and a promising sample from a reproducible effect.
+- **A measurable grader repair.** Replacing eight tests rejected all 38 observed false acceptances across 2,048 evaluation draws, while retaining all 440 draws that passed a separate 192-case audit.
+- **A separate test of learning.** The four-seed comparison did not establish better training outcomes. Inspecting all false acceptances exposed a second failure mechanism, and the full evaluation changed the picture suggested by a shorter sample.
+- **A traceable execution system.** Fault-injection checks verified recovery without repeating completed candidate executions. A controlled benchmark measured 2.75× grading throughput, and a full-state restart control matched the next fresh training rollout.
+
+The distinction between the first two results is visible below. Improving how a grader classifies saved programs is one claim; improving the policy trained with that grader requires its own evidence.
+
+![Two comparisons. On the same 2,048 evaluation draws, reference and repaired graders accepted zero audit-failing draws, while the weak grader accepted 38; all accepted 440 audit-passing draws. At the final training checkpoint, mean audit full-pass rates were 23.44 percent for reference, 25.39 percent for weak, and 22.07 percent for repaired, with four paired training seeds.](../../assets/booking-study-results.svg)
+
+*Top: all three graders applied to the same saved outputs. Bottom: policies trained with each grader; gray lines connect the four paired seeds and diamonds mark condition means. Each policy contributes 128 final draws. These are descriptive measurements; the paired comparison and uncertainty appear in the [training results](#evaluate-the-learned-policy-separately).*
+
+The [failure investigation](#trace-full-reward-back-to-the-failing-behavior), [execution and recovery design](#build-recovery-around-the-identity-of-an-observation), and [training results](#evaluate-the-learned-policy-separately) can each be read on their own. The story starts with the reward mismatch.
 
 ## Make the reward mismatch inspectable
 
