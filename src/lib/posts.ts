@@ -11,7 +11,7 @@ interface PostModule {
 const modules = import.meta.glob<PostModule>('../content/posts/*.{md,mdx}', { eager: true });
 
 export const posts = Object.entries(modules)
-  .filter(([, entry]) => entry.frontmatter.draft !== true)
+  .filter(([, entry]) => import.meta.env.DEV || entry.frontmatter.draft !== true)
   .map(([path, entry]) => {
     const slug = path.split('/').pop()!.replace(/\.(md|mdx)$/, '');
     const { title, description, date } = entry.frontmatter;
