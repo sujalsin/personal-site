@@ -1,0 +1,37 @@
+---
+import { formatDate } from '../lib/posts';
+const { title, description, date } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#fafaf8" />
+    <title>{title} — Sujal Singh</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={`${title} — Sujal Singh`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content={canonical} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23283f72'/%3E%3Ctext x='32' y='45' text-anchor='middle' font-family='Georgia,serif' font-size='46' fill='white'%3Es%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <div class="site-shell">
+      <header class="header">
+        <a class="wordmark" href="/" aria-label="Sujal Singh, home">sujal<span aria-hidden="true">.</span></a>
+        <nav aria-label="Main navigation"><a href="/#work">Work</a><a href="/#writing">Writing</a><a href="/#about">About</a></nav>
+      </header>
+      <main id="main" class="article">
+        <a class="back-link" href="/#writing">All writing</a>
+        <header class="article-heading"><time datetime={date}>{formatDate(date)}</time><h1>{title}</h1><p>{description}</p></header>
+        <article class="prose"><slot /></article>
+      </main>
+      <footer><span>© {new Date().getFullYear()} Sujal Singh</span><a href="/#writing">All writing</a></footer>
+    </div>
+  </body>
+</html>

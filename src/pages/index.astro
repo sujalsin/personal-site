@@ -1,0 +1,82 @@
+---
+import { posts, formatDate } from '../lib/posts';
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fafaf8">
+  <title>Sujal Singh — Engineering & Research</title>
+  <meta name="description" content="Sujal Singh is an engineer in the San Francisco Bay Area working on AI systems, evaluation, and reinforcement learning. Selected work and research notes.">
+  <meta property="og:title" content="Sujal Singh — Engineering & Research">
+  <meta property="og:description" content="AI systems, experiments, and the work of making them reliable.">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23283f72'/%3E%3Ctext x='32' y='45' text-anchor='middle' font-family='Georgia,serif' font-size='46' fill='white'%3Es%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="canonical" href="https://sujalsingh.me/">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="site-shell">
+    <header class="header">
+      <a class="wordmark" href="#home" aria-label="Sujal Singh, home">sujal<span aria-hidden="true">.</span></a>
+      <nav aria-label="Main navigation"><a href="#work">Work</a><a href="#writing">Writing</a><a href="#about">About</a></nav>
+    </header>
+    <main id="main">
+      <section class="intro" id="home" aria-labelledby="name">
+        <p class="eyebrow">ENGINEERING &amp; RESEARCH</p>
+        <h1 id="name">Sujal Singh<span class="period">.</span></h1>
+        <p class="lead">I build AI systems and study<br class="desktop-break"> what makes them reliable.</p>
+        <p class="intro-copy">Founding Engineer at <span class="text-emphasis">Miravoice</span>, working on production voice agents. My research interests sit around model evaluation, reinforcement learning, and the gap between passing a test and getting it right.</p>
+        <div class="intro-bottom"><span class="location">San Francisco Bay Area</span><div class="socials"><a href="https://github.com/sujalsin" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://www.linkedin.com/in/sujalsin/" target="_blank" rel="noopener noreferrer">LinkedIn</a><a href="mailto:sujals2144@gmail.com">Email</a></div></div>
+      </section>
+
+      <section class="section" id="work" aria-labelledby="work-title">
+        <div class="section-heading"><div class="section-label"><span class="section-number">01</span><h2 id="work-title">Selected work</h2></div><span class="section-aside">Systems &amp; experiments</span></div>
+        <article class="featured">
+          <div class="project-meta"><span>REINFORCEMENT LEARNING · EVALUATION</span><span>2026</span></div>
+          <h3>When the grader<br>gets it wrong.</h3>
+          <p class="project-name">Verifier-RL</p>
+          <p class="featured-copy">An experimental study of how incomplete code graders affect reinforcement learning—and whether repairing a verifier improves what a model actually learns.</p>
+          <details class="project-details">
+            <summary><span class="closed-label">Explore the study</span><span class="open-label">Close study notes</span><span class="toggle" aria-hidden="true"></span></summary>
+            <div class="detail-body">
+              <p>I ran 12 GRPO post-training experiments on Qwen2.5-Coder-1.5B, comparing three verifier conditions across four paired seeds on a booking-capacity task.</p>
+              <p>A repaired verifier rejected all 38 observed false acceptances while retaining all 440 audit-passing program draws, without increasing the test budget. Replication did not establish a training benefit.</p>
+              <p>The engineering work included sandboxed parallel code execution, durable results, and full-state training recovery.</p>
+              <div class="tags"><span>PyTorch</span><span>TRL / GRPO</span><span>Modal</span></div>
+            </div>
+          </details>
+        </article>
+        <div class="project-list">
+          <details class="project-row">
+            <summary><div class="row-content"><div class="row-top"><h3>Production voice agents</h3><span class="year">2026–present</span></div><p>Evaluation, conversation recovery, and reliable deployment at Miravoice.</p><span class="row-category">APPLIED AI · SYSTEMS</span></div><span class="toggle" aria-hidden="true"></span></summary>
+            <div class="detail-body"><p>As a Founding Engineer, I evaluate instruction following, tool-call correctness, latency, and interruption recovery. I use failed-conversation replays to guide prompt and runtime changes.</p><p>My work also spans speech recognition and dialogue-state failures, asynchronous deployment orchestration, and campaign delivery.</p></div>
+          </details>
+          <details class="project-row">
+            <summary><div class="row-content"><div class="row-top"><h3>PatentSphere</h3><span class="year">2025</span></div><p>Evidence-grounded patent research with retrieval and agent workflows.</p><span class="row-category">RETRIEVAL · AGENTS</span></div><span class="toggle" aria-hidden="true"></span></summary>
+            <div class="detail-body"><p>A LangGraph system that routes patent questions, expands technical queries, and synthesizes reports from retrieved patent and litigation evidence.</p><p>It combines Qdrant vector search with PostgreSQL metadata, concurrent enrichment, programmatic citation-ID checks, and structured critic feedback with capped retries.</p><div class="tags"><span>Python</span><span>LangGraph</span><span>Qdrant</span></div></div>
+          </details>
+          <details class="project-row">
+            <summary><div class="row-content"><div class="row-top"><h3>Causal-DiffAug</h3><span class="year">2026</span></div><p>Studying spurious correlations and learned masks in graph models.</p><span class="row-category">GRAPH LEARNING · ROBUSTNESS</span></div><span class="toggle" aria-hidden="true"></span></summary>
+            <div class="detail-body"><p>I co-developed a graph-learning pipeline with learned node masks, counterfactual feature perturbations, and consistency and sparsity objectives.</p><p>The work included diagnosing attention-mask collapse, adjusting initialization, and evaluating classification performance and learned masks on synthetic motif graphs.</p><div class="tags"><span>PyTorch Geometric</span><span>Graph neural networks</span></div></div>
+          </details>
+        </div>
+      </section>
+
+      <section class="section writing" id="writing" aria-labelledby="writing-title">
+        <div class="section-heading"><div class="section-label"><span class="section-number">02</span><h2 id="writing-title">Writing</h2></div><span class="section-aside">Notes from the work</span></div>
+        {posts.length > 0 ? <div class="post-list">{posts.map(post => <article class="post-entry"><a href={`/writing/${post.slug}/`}><h3>{post.frontmatter.title}</h3><p>{post.frontmatter.description}</p><time datetime={post.frontmatter.date}>{formatDate(post.frontmatter.date)}</time></a></article>)}</div> : (        <div class="writing-empty"><span class="empty-index" aria-hidden="true">[&nbsp; &nbsp;]</span><div><h3>A place to think out loud.</h3><p>Experiment notes, technical explanations, and things I learn while building.</p><span class="empty-status">No posts yet.</span></div></div>)}
+      </section>
+
+      <section class="section about" id="about" aria-labelledby="about-title">
+        <div class="section-heading"><div class="section-label"><span class="section-number">03</span><h2 id="about-title">A little background</h2></div></div>
+        <div class="about-grid"><div class="about-copy"><p>I’m an engineer based in the Bay Area, working on AI systems at Miravoice and exploring research questions through independent projects.</p><p>I like working across the full path from an experiment to a system that has to work in practice. My work spans model evaluation, reinforcement learning, and the engineering that makes AI systems reliable.</p><p>I’m especially interested in what our tests capture, what they miss, and how those choices shape model behavior.</p></div><aside class="education" aria-label="Education"><p class="eyebrow">EDUCATION</p><div><h3>Northeastern University</h3><p>MS, Computer Science</p></div><div><h3>University at Buffalo</h3><p>BS, Computer Science<br>Minor in Mathematics</p></div></aside></div>
+        <div class="contact"><p>Have a question or a shared interest?</p><a href="mailto:sujals2144@gmail.com">Say hello.</a></div>
+      </section>
+    </main>
+    <footer><span>© 2026 Sujal Singh</span><a href="#home">Back to top</a></footer>
+  </div>
+</body>
+</html>
