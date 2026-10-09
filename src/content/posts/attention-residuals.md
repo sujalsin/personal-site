@@ -2,7 +2,7 @@
 title: "Attention Residuals against the clock"
 description: "Training two small language models from scratch led me from a mixed result to a memory investigation, a faster mixer, and a fresh comparison."
 date: "2026-10-09"
-draft: true
+draft: false
 ---
 
 **[Experiment notebook](https://colab.research.google.com/drive/1cxxps-0qZ8KPiem91ptMx38u-jvnQUYF) · [Attention Residuals paper](https://arxiv.org/abs/2603.15031v1) · [Results](#the-original-result-depended-on-which-axis-i-used)**
@@ -11,7 +11,7 @@ I wanted to understand whether a Transformer could learn more effectively by cho
 
 That led to the question I could investigate on a Colab GPU: **would better access to earlier representations improve a language model within a fixed training-time budget?**
 
-I implemented a standard GPT and a Full Attention Residuals variant, trained both from random weights, and compared them across three paired seeds. The first result split in two. Attention Residuals learned better at the same token count in every pair, but took about **70% more training time per token**. After twenty measured training minutes, its advantage was inconsistent.
+I implemented a standard GPT and a Full Attention Residuals variant, trained both from random weights, and compared them across three paired seeds. The first result split in two. Attention Residuals achieved lower validation loss at the **40.96M-token milestone** in every pair, but took about **70% more training time per token**. After twenty measured training minutes, its advantage was inconsistent.
 
 The investigation led into the tensors my mixer was saving for backward. An algebraic rewrite reduced time per token by **16.5% relative to my original implementation**. In a separate exploratory comparison with fresh baselines, the rewritten version then achieved lower fixed-time validation loss in all three pairs, by **0.0141 nats/token on average**.
 
@@ -53,7 +53,7 @@ Here, $v_i$ is an earlier source, $q$ is that mixer's learned query vector, and 
 
 The softmax runs across **depth sources at the same token position**. Causal self-attention continues to handle mixing across token positions. I normalized the sources for scoring, while the weighted sum used their original, unnormalized values.
 
-Queries started at zero, giving uniform source weights. The first attention sublayer needed no learned mixer because only the embedding existed. Across eight blocks and the final output mixture, there were sixteen learned mixers, adding **12,288 parameters—about 0.0365%** over the baseline.
+Queries started at zero, giving uniform source weights. The first attention sublayer needed no learned mixer because only the embedding existed. Across eight blocks and the final output mixture, there were sixteen learned mixers, adding **12,288 parameters, about 0.0365%** over the baseline.
 
 That small parameter increase was a poor guide to the eventual execution cost.
 
@@ -73,7 +73,7 @@ Those results sharpened the question. Was the architecture learning less effecti
 
 For the main comparison, I expanded the fixed corpus to **100M training tokens, 1M validation tokens, and 1M test tokens**. Documents were assigned to splits before tokenization using normalized-text hashes. The preparation rejected duplicate IDs and normalized exact-text duplicates; it did not perform a separate near-duplicate audit.
 
-I fixed three paired seeds—2027, 2028, and 2029—and two endpoints before training:
+I fixed three paired seeds (2027, 2028, and 2029) and two endpoints before training:
 
 | Endpoint | What it asks |
 | --- | --- |
@@ -129,7 +129,7 @@ keys = values * inverse_rms * gain
 scores = (keys * query).sum(dim=-1)
 ```
 
-The inventory found **783.31 MiB** of non-parameter storage saved for backward in the baseline and **2,153.68 MiB** in AttnRes. Almost the entire difference—**1,370.38 MiB**—was first saved inside the mixers. This accounted for more than simply retaining the earlier layer outputs.
+The inventory found **783.31 MiB** of non-parameter storage saved for backward in the baseline and **2,153.68 MiB** in AttnRes. Almost the entire difference (**1,370.38 MiB**) was first saved inside the mixers. This accounted for more than simply retaining the earlier layer outputs.
 
 The opportunity was in the score calculation. For one source vector, let $r$ be its scalar inverse RMS:
 
@@ -151,7 +151,7 @@ The saved-storage reduction was **910.789 MiB**, matching the accounting predict
 
 ## The rewrite still had to earn my trust
 
-The two expressions are identical in real arithmetic. FP32 changes the order of rounding, so a numerical comparison was necessary before treating the rewrite as a performance improvement.
+The two expressions are identical in real arithmetic. Standalone FP64 checks of mixer outputs, weights, and gradients passed across sixteen source-count/input-scale cases, including nonzero queries. FP32 changes the order of rounding, so I also compared the full models before treating the rewrite as a performance improvement.
 
 The original pointwise logit check **failed with nonzero mixer queries**. The saved audit showed 787 mismatches out of about 103 million logits under the original tolerances. The largest absolute difference was `1.344e-5`; relative L2 difference was `1.390e-6`. Loss, depth-weight, and gradient comparisons passed their original criteria.
 

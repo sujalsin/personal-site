@@ -1,8 +1,8 @@
 # Attention Residuals article
 
-Draft: [Attention Residuals against the clock](../src/content/posts/attention-residuals.md).
-The post uses `draft: true` and is visible at `/writing/attention-residuals/` in local
-development. Production excludes it until publication is approved.
+Article: [Attention Residuals against the clock](../src/content/posts/attention-residuals.md).
+Publication and merge were approved by Sujal on October 9, 2026. The post uses
+`draft: false` and is included at `/writing/attention-residuals/` in production.
 
 The narrative follows the architectural question, the reason for random-weight
 training, correctness checks and pilots, the frozen original comparison, mixer
@@ -73,7 +73,17 @@ matplotlib. `--png /tmp/attention-results.png` optionally creates a review image
 The script checks the displayed means and sample SD against the seed differences.
 It does not run research code, training, or checkpoint evaluation.
 
-Run `npm run dev` for the draft article, or `npm run build` to verify the website
-build. The existing design and other published posts are unchanged. The draft date
-is its preparation date. The paper discussion describes a motivating discrepancy
-and an implementation investigation, not a failed controlled replication.
+Run `npm run dev` for a local preview, or `npm run build` to build the published
+article. The existing design and other published posts are unchanged. The article
+date is its publication date. The paper discussion describes a motivating
+discrepancy and an implementation investigation, not a failed controlled replication.
+
+## Publication review
+
+Rechecked the saved notebook's identity, all four sets of paired validation
+differences, their means and sample SD, and the derived headline percentages.
+The opening now specifies the 40.96M-token milestone. The numerical discussion
+also identifies the sixteen standalone FP64 mixer cases that passed before the
+full-model FP32 comparison. The original failed pointwise logit criterion and
+the subsequent calibrated criterion remain disclosed. No new research runs or
+checkpoint evaluations were performed.
