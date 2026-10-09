@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "provenance": {
+    "notebook_url": "https://colab.research.google.com/drive/1cxxps-0qZ8KPiem91ptMx38u-jvnQUYF",
+    "notebook_sha256": "193fcd5b0f6cff62843d5eeed1c4e5859b9c4d6372b8234960cf297e6991b3ea",
+    "retrieved_on": "2026-10-09",
+    "kind": "Extracted or transcribed from saved Colab text outputs. No notebook cells executed and no remote checkpoint audit performed.",
+    "cell_ids": {
+      "main_results": "L8h23LE1h60T",
+      "original_test": "Az_J42u0BO_C",
+      "performance": "gVDlIrBEFRS6",
+      "memory_accounting": "4AcOGPD0NJaF",
+      "followup_results": "kNnzQLZYaVbT"
+    }
+  },
+  "units": "nats/token",
+  "difference": "Attention Residuals minus its paired baseline; negative favors Attention Residuals",
+  "seeds": [
+    2027,
+    2028,
+    2029
+  ],
+  "training_seconds": 1200,
+  "processed_token_milestone": 40960000,
+  "original": {
+    "label": "Original implementation",
+    "fixed_time_validation": {
+      "n": 3,
+      "mean": 0.003083438919277389,
+      "sample_sd": 0.01999525864673601,
+      "values": [
+        0.006088852790474775,
+        -0.0182444031721527,
+        0.021405867139510093
+      ]
+    },
+    "fixed_tokens_validation": {
+      "n": 3,
+      "mean": -0.06324817273077936,
+      "sample_sd": 0.003011953589731279,
+      "values": [
+        -0.062131852041215296,
+        -0.06665891708225313,
+        -0.060953749068869634
+      ]
+    },
+    "final_test": {
+      "n": 3,
+      "values": [
+        -0.00145067160905743,
+        -0.01477662811414504,
+        0.02339859741230743
+      ],
+      "mean": 0.0023904325630349867,
+      "sample_sd": 0.019375307015490784
+    },
+    "pooled_tokens_per_second_reported": {
+      "baseline": 125246,
+      "attnres": 73656
+    },
+    "time_per_token_ratio": 1.7004048100097058,
+    "max_peak_allocated_gib": {
+      "baseline": 2.314568042755127,
+      "attnres": 3.661771297454834
+    }
+  },
+  "followup": {
+    "label": "After the rewrite",
+    "status": "Exploratory; reused original data and seeds; fresh paired baselines; no follow-up test evaluation.",
+    "fixed_time_validation": {
+      "n": 3,
+      "values": [
+        -0.022349197869617754,
+        -0.015783311073780837,
+        -0.00413977979648017
+      ],
+      "mean": -0.01409076291329292,
+      "sample_sd": 0.009221944811006825,
+      "factored_lower_loss_count": 3
+    },
+    "fixed_tokens_validation": {
+      "n": 3,
+      "values": [
+        -0.04768531306426471,
+        -0.06717104728598411,
+        -0.06216763887166454
+      ],
+      "mean": -0.059007999740637786,
+      "sample_sd": 0.010119829500471253,
+      "factored_lower_loss_count": 3
+    },
+    "pooled_tokens_per_second": {
+      "baseline": 124954.43548428657,
+      "attnres": 87419.4156591258
+    },
+    "time_per_token_ratio": 1.4293670867295765,
+    "max_peak_allocated_gib": {
+      "baseline": 2.312736988067627,
+      "attnres": 2.7730836868286133
+    }
+  },
+  "performance_probe": {
+    "time_per_token_factored_over_original": 0.8349858808907589,
+    "time_per_token_factored_over_baseline": 1.4147193395712592,
+    "saved_storage_reduction_mib": 910.7890625,
+    "starting_allocated_gib_reported": 4.479808,
+    "note": "Saved-for-backward storage is not peak GPU memory. All short trials began with other allocations; use the separate follow-up for clean-start peak measurements."
+  }
+}
